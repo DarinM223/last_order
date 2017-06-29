@@ -82,4 +82,28 @@ defmodule LastOrder.Ring do
     {_, location, _} = :gb_trees.next(iter)
     location
   end
+
+  @doc """
+  Returns the tree as a list.
+
+  ## Example
+
+      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
+      iex> ring = LastOrder.Ring.add(ring, "foo@localhost")
+      iex> ring = LastOrder.Ring.add(ring, "bar@localhost")
+      iex> LastOrder.Ring.as_list(ring)
+      ["foo@localhost", "bar@localhost"]
+
+  """
+  def as_list({tree, _}) do
+    iter = :gb_trees.iterator(tree)
+    _iter(iter, [])
+  end
+
+  defp _iter(iter, result) do
+    case :gb_trees.next(iter) do
+      {_, location, iter} -> _iter(iter, [location | result])
+      :none -> result
+    end
+  end
 end
