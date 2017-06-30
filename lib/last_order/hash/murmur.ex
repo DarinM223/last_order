@@ -11,7 +11,7 @@ defmodule LastOrder.Hash.Murmur do
   end
   def hash({curr_hash, num}) when is_integer(curr_hash) and is_integer(num) do
     h = start_hash(curr_hash)
-    h = extend_hash(curr_hash, num, start_magic_a(), start_magic_b())
+    h = extend_hash(h, num, start_magic_a(), start_magic_b())
     finalize_hash(h)
   end
   def hash(blob) do

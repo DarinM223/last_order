@@ -4,8 +4,11 @@ defmodule LastOrder.Router do
   alias LastOrder.Ring
   alias LastOrder.Hash
 
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, :ok, opts)
+  @v_nodes Application.get_env(:last_order, :v_nodes)
+  @nodes Application.get_env(:last_order, :nodes)
+
+  def start_link(nodes \\ @nodes, v_nodes \\ @v_nodes, opts \\ []) do
+    GenServer.start_link(__MODULE__, {nodes, v_nodes}, opts)
   end
 
   def add(router, node) do
@@ -26,36 +29,44 @@ defmodule LastOrder.Router do
 
   # GenServer API
 
-  def init(:ok) do
-    ring = Ring.new(&Hash.Crc32.hash/1)
-    {:ok, {ring, []}}
+  def init({nodes, v_nodes}) do
+    ring = Ring.new(&Hash.Murmur.hash/1, v_nodes)
+    {ring, refs} = Enum.reduce(nodes, {ring, []}, fn(node, state) ->
+      add_node(state, node)
+    end)
+    {:ok, {ring, refs}}
   end
 
   def handle_call(:get, _from, {ring, _} = state) do
     {:reply, Ring.as_list(ring), state}
   end
 
-  def handle_call({:add, node}, _from, {ring, refs}) do
-    # TODO(DarinM223): handle duplicates
-    ring = Ring.add(ring, node)
-    refs = [{node, Process.monitor(node)} | refs]
-    {:reply, :ok, {ring, refs}}
+  def handle_call({:add, node}, _from, state) do
+    {:reply, :ok, add_node(state, node)}
   end
 
-  def handle_call({:remove, node}, _from, {ring, refs}) do
-    ring = Ring.remove(ring, node)
-    refs = List.keydelete(refs, node, 0)
-    {:reply, :ok, {ring, refs}}
+  def handle_call({:remove, node}, _from, state) do
+    {:reply, :ok, remove_node(state, node)}
   end
 
   def handle_call({:route, key}, _from, {ring, _} = state) do
     {:reply, Ring.route(ring, key), state}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {ring, refs}) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, {_, refs} = state) do
     {node, _} = List.keyfind(refs, ref, 1)
+    {:noreply, remove_node(state, node)}
+  end
+
+  defp add_node({ring, refs}, node) do
+    ring = Ring.add(ring, node)
+    refs = [{node, Process.monitor(node)} | refs]
+    {ring, refs}
+  end
+
+  defp remove_node({ring, refs}, node) do
     ring = Ring.remove(ring, node)
     refs = List.keydelete(refs, node, 0)
-    {:noreply, {ring, refs}}
+    {ring, refs}
   end
 end

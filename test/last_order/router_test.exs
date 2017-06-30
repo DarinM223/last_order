@@ -3,26 +3,29 @@ defmodule RouterTest do
 
   alias LastOrder.Router
   alias LastOrder.Testing
-  alias LastOrder.Hash
 
   setup context do
-    {:ok, router} = Router.start_link
-    {:ok, _} = Testing.DummyWorker.start_link(name: context.test)
-    {:ok, router: router, worker: context.test}
+    {:ok, test: context.test}
   end
 
-  test "adds pid to the router", %{router: router, worker: worker} do
+  test "adds pid to the router", %{test: worker} do
+    {:ok, router} = Router.start_link([], 1)
+    {:ok, _} = Testing.DummyWorker.start_link(name: worker)
     Router.add(router, worker)
     assert Router.get(router) == [worker]
   end
 
-  test "removes pid from the router", %{router: router, worker: worker} do
+  test "removes pid from the router", %{test: worker} do
+    {:ok, router} = Router.start_link([], 1)
+    {:ok, _} = Testing.DummyWorker.start_link(name: worker)
     Router.add(router, worker)
     Router.remove(router, worker)
     assert Router.get(router) == []
   end
 
-  test "removes pid on process kill", %{router: router, worker: worker} do
+  test "removes pid on process kill", %{test: worker} do
+    {:ok, router} = Router.start_link([], 1)
+    {:ok, _} = Testing.DummyWorker.start_link(name: worker)
     Router.add(router, worker)
 
     ref = Process.monitor(worker)
@@ -30,5 +33,12 @@ defmodule RouterTest do
     assert_receive {:DOWN, ^ref, _, _, _}
 
     assert Router.get(router) == []
+  end
+
+  test "adds passed in nodes", %{test: test} do
+    names = Enum.map(1..4, &(:"#{test}_#{&1}"))
+    Enum.each(names, &Testing.DummyWorker.start_link(name: &1))
+    {:ok, router} = Router.start_link(names, 4)
+    assert length(Router.get(router)) == 4 * length(names)
   end
 end

@@ -29,14 +29,6 @@ defmodule LastOrder.Ring do
       iex> LastOrder.Ring.add(ring, "hello")
       {{1, {2534913988, "hello", nil, nil}}, &LastOrder.Hash.Crc32.hash/1, 1}
 
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Murmur.hash/1, 5)
-      iex> LastOrder.Ring.add(ring, "hello")
-      {{5,
-        {1378021531, "hello", {328213002, "hello", nil, nil},
-         {3431377204, "hello", {2855951083, "hello", nil, nil},
-          {4064065953, "hello", nil, nil}}}},
-        &LastOrder.Hash.Murmur.hash/1, 5}
-
   """
   def add({tree, hash_fn, v_nodes}, value) do
     hash = hash_fn.(value)
@@ -56,11 +48,6 @@ defmodule LastOrder.Ring do
       iex> ring = LastOrder.Ring.add(ring, "hello")
       iex> LastOrder.Ring.remove(ring, "hello")
       {{0, nil}, &LastOrder.Hash.Crc32.hash/1, 1}
-
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Murmur.hash/1, 5)
-      iex> ring = LastOrder.Ring.add(ring, "hello")
-      iex> LastOrder.Ring.remove(ring, "hello")
-      {{0, nil}, &LastOrder.Hash.Murmur.hash/1, 5}
 
   """
   def remove({tree, hash_fn, v_nodes}, value) do
