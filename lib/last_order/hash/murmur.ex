@@ -9,6 +9,11 @@ defmodule LastOrder.Hash.Murmur do
   def hash(s) when is_binary(s) do
     string_hash(s)
   end
+  def hash({curr_hash, num}) when is_integer(curr_hash) and is_integer(num) do
+    h = start_hash(curr_hash)
+    h = extend_hash(curr_hash, num, start_magic_a(), start_magic_b())
+    finalize_hash(h)
+  end
   def hash(blob) do
     hash(inspect(blob))
   end

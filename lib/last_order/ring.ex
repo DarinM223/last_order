@@ -10,11 +10,14 @@ defmodule LastOrder.Ring do
   ## Example
 
       iex> LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
-      {{0, nil}, &LastOrder.Hash.Crc32.hash/1}
+      {{0, nil}, &LastOrder.Hash.Crc32.hash/1, 1}
+
+      iex> LastOrder.Ring.new(&LastOrder.Hash.Murmur.hash/1, 4)
+      {{0, nil}, &LastOrder.Hash.Murmur.hash/1, 4}
 
   """
-  def new(hash_fn) do
-    {:gb_trees.empty(), hash_fn}
+  def new(hash_fn, v_nodes \\ 1) do
+    {:gb_trees.empty(), hash_fn, v_nodes}
   end
 
   @doc """
@@ -24,12 +27,24 @@ defmodule LastOrder.Ring do
 
       iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
       iex> LastOrder.Ring.add(ring, "hello")
-      {{1, {907060870, "hello", nil, nil}}, &LastOrder.Hash.Crc32.hash/1}
+      {{1, {2534913988, "hello", nil, nil}}, &LastOrder.Hash.Crc32.hash/1, 1}
+
+      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Murmur.hash/1, 5)
+      iex> LastOrder.Ring.add(ring, "hello")
+      {{5,
+        {1378021531, "hello", {328213002, "hello", nil, nil},
+         {3431377204, "hello", {2855951083, "hello", nil, nil},
+          {4064065953, "hello", nil, nil}}}},
+        &LastOrder.Hash.Murmur.hash/1, 5}
 
   """
-  def add({tree, hash_fn}, value) do
+  def add({tree, hash_fn, v_nodes}, value) do
     hash = hash_fn.(value)
-    {:gb_trees.insert(hash, value, tree), hash_fn}
+    tree = Enum.reduce(1..v_nodes, tree, fn(v_node, tree) ->
+      hash = hash_fn.({hash, v_node})
+      :gb_trees.insert(hash, value, tree)
+    end)
+    {tree, hash_fn, v_nodes}
   end
 
   @doc """
@@ -40,12 +55,21 @@ defmodule LastOrder.Ring do
       iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
       iex> ring = LastOrder.Ring.add(ring, "hello")
       iex> LastOrder.Ring.remove(ring, "hello")
-      {{0, nil}, &LastOrder.Hash.Crc32.hash/1}
+      {{0, nil}, &LastOrder.Hash.Crc32.hash/1, 1}
+
+      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Murmur.hash/1, 5)
+      iex> ring = LastOrder.Ring.add(ring, "hello")
+      iex> LastOrder.Ring.remove(ring, "hello")
+      {{0, nil}, &LastOrder.Hash.Murmur.hash/1, 5}
 
   """
-  def remove({tree, hash_fn}, value) do
+  def remove({tree, hash_fn, v_nodes}, value) do
     hash = hash_fn.(value)
-    {:gb_trees.delete(hash, tree), hash_fn}
+    tree = Enum.reduce(1..v_nodes, tree, fn(v_node, tree) ->
+      hash = hash_fn.({hash, v_node})
+      :gb_trees.delete(hash, tree)
+    end)
+    {tree, hash_fn, v_nodes}
   end
 
   @doc """
@@ -66,12 +90,12 @@ defmodule LastOrder.Ring do
       ...> LastOrder.Ring.add("foo@localhost") |>
       ...> LastOrder.Ring.add("bar@localhost")
       iex> LastOrder.Ring.find_best_match(ring, "http://www.twitter.com")
-      "bar@localhost"
-      iex> LastOrder.Ring.find_best_match(ring, "http://www.twitter.com/feed")
       "foo@localhost"
+      iex> LastOrder.Ring.find_best_match(ring, "http://www.twitter.com/careers")
+      "bar@localhost"
 
   """
-  def find_best_match({tree, hash_fn}, value) do
+  def find_best_match({tree, hash_fn, _}, value) do
     hash = hash_fn.(value)
     iter =
       case :gb_trees.iterator_from(hash, tree) do
@@ -95,7 +119,7 @@ defmodule LastOrder.Ring do
       ["foo@localhost", "bar@localhost"]
 
   """
-  def as_list({tree, _}) do
+  def as_list({tree, _, _}) do
     iter = :gb_trees.iterator(tree)
     _iter(iter, [])
   end

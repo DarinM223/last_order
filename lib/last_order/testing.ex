@@ -3,11 +3,19 @@ defmodule LastOrder.Testing do
     use GenServer
 
     def start_link(opts \\ []) do
-      GenServer.start_link(__MODULE__, :ok, opts)
+      GenServer.start_link(__MODULE__, opts[:name], opts)
     end
 
-    def init(:ok) do
-      {:ok, nil}
+    def get(dummy) do
+      GenServer.call(dummy, :get)
+    end
+
+    def init(name) do
+      {:ok, name}
+    end
+
+    def handle_call(:get, _from, name) do
+      {:reply, name, name}
     end
   end
 end
