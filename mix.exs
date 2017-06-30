@@ -28,6 +28,6 @@ defmodule LastOrder.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [{:rustler, "~> 0.9.0"}]
   end
 end
