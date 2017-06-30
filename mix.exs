@@ -7,7 +7,14 @@ defmodule LastOrder.Mixfile do
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+     compilers: [:rustler] ++ Mix.compilers(),
+     rustler_crates: rustler_crates()]
+  end
+
+  def rustler_crates do
+    [murmur: [path: "native/murmur",
+              features: []]]
   end
 
   # Configuration for the OTP application
@@ -28,6 +35,6 @@ defmodule LastOrder.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:rustler, "~> 0.9.0"}]
+    [{:rustler, "~> 0.10.1"}]
   end
 end

@@ -12,6 +12,37 @@ pub fn start_hash(seed: u32) -> u32 {
     seed ^ visible_magic
 }
 
+pub fn extend_hash(hash: u32, value: u32, magic_a: u32, magic_b: u32) -> u32 {
+    (hash ^ rotate_left(value.wrapping_mul(magic_a), 11).wrapping_mul(magic_b))
+        .wrapping_mul(3)
+        .wrapping_add(visible_mixer)
+}
+
+pub fn finalize_hash(hash: u32) -> u32 {
+    let mut i = hash ^ hash.overflowing_shr(16).0;
+    i = i.wrapping_mul(final_mixer_1);
+    i ^= i.overflowing_shr(13).0;
+    i = i.wrapping_mul(final_mixer_2);
+    i ^= i.overflowing_shr(16).0;
+    i
+}
+
+pub fn start_magic_a() -> u32 {
+    hidden_magic_a
+}
+
+pub fn start_magic_b() -> u32 {
+    hidden_magic_b
+}
+
+pub fn next_magic_a(magic_a: u32) -> u32 {
+    magic_a.wrapping_mul(5).wrapping_add(hidden_mixer_a)
+}
+
+pub fn next_magic_b(magic_b: u32) -> u32 {
+    magic_b.wrapping_mul(5).wrapping_add(hidden_mixer_b)
+}
+
 pub fn string_hash(s: String) -> u32 {
     let mut h = start_hash((s.len() as u32).wrapping_mul(seed_string));
     let mut c = hidden_magic_a;
@@ -31,29 +62,6 @@ pub fn string_hash(s: String) -> u32 {
         h = extend_hash(h, s.chars().nth(j).unwrap() as u32, c, k);
     }
     finalize_hash(h)
-}
-
-pub fn extend_hash(hash: u32, value: u32, magic_a: u32, magic_b: u32) -> u32 {
-    (hash ^ rotate_left(value.wrapping_mul(magic_a), 11).wrapping_mul(magic_b))
-        .wrapping_mul(3)
-        .wrapping_add(visible_mixer)
-}
-
-pub fn next_magic_a(magic_a: u32) -> u32 {
-    magic_a.wrapping_mul(5).wrapping_add(hidden_mixer_a)
-}
-
-pub fn next_magic_b(magic_b: u32) -> u32 {
-    magic_b.wrapping_mul(5).wrapping_add(hidden_mixer_b)
-}
-
-pub fn finalize_hash(hash: u32) -> u32 {
-    let mut i = hash ^ hash.overflowing_shr(16).0;
-    i = i.wrapping_mul(final_mixer_1);
-    i ^= i.overflowing_shr(13).0;
-    i = i.wrapping_mul(final_mixer_2);
-    i ^= i.overflowing_shr(16).0;
-    i
 }
 
 fn rotate_left(value: u32, shift: u32) -> u32 {
