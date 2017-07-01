@@ -4,10 +4,7 @@ defmodule LastOrder.Router do
   alias LastOrder.Ring
   alias LastOrder.Hash
 
-  @v_nodes Application.get_env(:last_order, :v_nodes)
-  @nodes Application.get_env(:last_order, :nodes)
-
-  def start_link(nodes \\ @nodes, v_nodes \\ @v_nodes, opts \\ []) do
+  def start_link(nodes, v_nodes, opts \\ []) do
     GenServer.start_link(__MODULE__, {nodes, v_nodes}, opts)
   end
 

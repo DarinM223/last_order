@@ -29,8 +29,4 @@ use Mix.Config
 #
 #     import_config "#{Mix.env}.exs"
 
-config :last_order, v_nodes: 4, nodes: [
-  "foo@localhost",
-  "bar@localhost",
-  "blah@localhost"
-]
+config :last_order, v_nodes: 4, nodes: []
