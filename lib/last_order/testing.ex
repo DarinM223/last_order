@@ -6,15 +6,11 @@ defmodule LastOrder.Testing do
       GenServer.start_link(__MODULE__, opts[:name], opts)
     end
 
-    def get(dummy) do
-      GenServer.call(dummy, :get)
-    end
-
     def init(name) do
       {:ok, name}
     end
 
-    def handle_call(:get, _from, name) do
+    def handle_call({:route, :get}, _from, name) do
       {:reply, name, name}
     end
   end

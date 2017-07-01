@@ -41,4 +41,12 @@ defmodule RouterTest do
     {:ok, router} = Router.start_link(names, 4)
     assert length(Router.get(router)) == 4 * length(names)
   end
+
+  test "routes to worker", %{test: worker} do
+    {:ok, router} = Router.start_link([], 1)
+    {:ok, _} = Testing.DummyWorker.start_link(name: worker)
+    Router.add(router, worker)
+
+    assert Router.route(router, "hello", :get) == worker
+  end
 end

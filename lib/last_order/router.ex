@@ -19,8 +19,8 @@ defmodule LastOrder.Router do
     GenServer.call(router, {:remove, node})
   end
 
-  def route(router, key) do
-    GenServer.call(router, {:route, key})
+  def route(router, key, args, call_fn \\ &GenServer.call/2) do
+    GenServer.call(router, {:route, key, args, call_fn})
   end
 
   def get(router) do
@@ -49,8 +49,8 @@ defmodule LastOrder.Router do
     {:reply, :ok, remove_node(state, node)}
   end
 
-  def handle_call({:route, key}, _from, {ring, _} = state) do
-    {:reply, Ring.route(ring, key), state}
+  def handle_call({:route, key, args, call_fn}, _from, {ring, _} = state) do
+    {:reply, Ring.route(ring, key, args, call_fn), state}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {_, refs} = state) do

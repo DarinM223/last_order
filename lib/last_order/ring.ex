@@ -61,10 +61,21 @@ defmodule LastOrder.Ring do
 
   @doc """
   Routes a call to the correct node.
+
+  ## Example
+
+      iex> LastOrder.Testing.DummyWorker.start_link(name: :dummy)
+      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
+      iex> ring = LastOrder.Ring.add(ring, :dummy)
+      iex> LastOrder.Ring.route(ring, "hello", :get)
+      :dummy
+      iex> LastOrder.Ring.route(ring, "hello", :get, &GenServer.call/2)
+      :dummy
+
   """
-  def route(ring, value) do
+  def route(ring, value, args, call_fn \\ &GenServer.call/2) do
     location = find_best_match(ring, value)
-    raise "Not implemented"
+    call_fn.(location, {:route, args})
   end
 
   @doc """
