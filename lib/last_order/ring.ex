@@ -64,7 +64,7 @@ defmodule LastOrder.Ring do
 
   ## Example
 
-      iex> LastOrder.Testing.DummyWorker.start_link(name: :dummy)
+      iex> LastOrder.TestHelpers.DummyWorker.start_link(name: :dummy)
       iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
       iex> ring = LastOrder.Ring.add(ring, :dummy)
       iex> LastOrder.Ring.route(ring, "hello", :get)
