@@ -1,14 +1,18 @@
 defmodule LastOrder.Hash.Md5 do
-  @doc """
-  MD5 hashing implementation.
-  """
-  def hash(s) when is_binary(s) do
-    :crypto.hash(:md5, s)
-  end
-  def hash({curr_hash, num}) when is_integer(curr_hash) and is_integer(num) do
-    hash("#{curr_hash}#{num}")
-  end
-  def hash(blob) do
-    hash(inspect(blob))
+  alias LastOrder.Hash.Md5
+
+  defstruct []
+
+  defimpl LastOrder.Hash do
+    def hash(_, s) when is_binary(s) do
+      :crypto.hash(:md5, s)
+    end
+    def hash(type, blob) do
+      hash(type, inspect(blob))
+    end
+
+    def extend(type, curr_hash, num) do
+      hash(type, "#{curr_hash}#{num}")
+    end
   end
 end

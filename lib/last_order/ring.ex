@@ -4,20 +4,22 @@ defmodule LastOrder.Ring do
   Erlang's built in balanced tree library.
   """
 
+  alias LastOrder.Hash
+
   @doc """
   Creates a new ring.
 
   ## Example
 
-      iex> LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
-      {{0, nil}, &LastOrder.Hash.Crc32.hash/1, 1}
+      iex> LastOrder.Ring.new(%LastOrder.Hash.Crc32{})
+      {{0, nil}, %LastOrder.Hash.Crc32{}, 1}
 
-      iex> LastOrder.Ring.new(&LastOrder.Hash.Murmur.hash/1, 4)
-      {{0, nil}, &LastOrder.Hash.Murmur.hash/1, 4}
+      iex> LastOrder.Ring.new(%LastOrder.Hash.Murmur{}, 4)
+      {{0, nil}, %LastOrder.Hash.Murmur{}, 4}
 
   """
-  def new(hash_fn, v_nodes \\ 1) do
-    {:gb_trees.empty(), hash_fn, v_nodes}
+  def new(hash_type, v_nodes \\ 1) do
+    {:gb_trees.empty(), hash_type, v_nodes}
   end
 
   @doc """
@@ -25,18 +27,18 @@ defmodule LastOrder.Ring do
 
   ## Example
 
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
+      iex> ring = LastOrder.Ring.new(%LastOrder.Hash.Crc32{})
       iex> LastOrder.Ring.add(ring, "hello")
-      {{1, {2534913988, "hello", nil, nil}}, &LastOrder.Hash.Crc32.hash/1, 1}
+      {{1, {2534913988, "hello", nil, nil}}, %LastOrder.Hash.Crc32{}, 1}
 
   """
-  def add({tree, hash_fn, v_nodes}, value) do
-    hash = hash_fn.(value)
+  def add({tree, hash_type, v_nodes}, value) do
+    hash = Hash.hash(hash_type, value)
     tree = Enum.reduce(1..v_nodes, tree, fn(v_node, tree) ->
-      hash = hash_fn.({hash, v_node})
+      hash = Hash.extend(hash_type, hash, v_node)
       :gb_trees.insert(hash, value, tree)
     end)
-    {tree, hash_fn, v_nodes}
+    {tree, hash_type, v_nodes}
   end
 
   @doc """
@@ -44,19 +46,19 @@ defmodule LastOrder.Ring do
 
   ## Example
 
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
+      iex> ring = LastOrder.Ring.new(%LastOrder.Hash.Crc32{})
       iex> ring = LastOrder.Ring.add(ring, "hello")
       iex> LastOrder.Ring.remove(ring, "hello")
-      {{0, nil}, &LastOrder.Hash.Crc32.hash/1, 1}
+      {{0, nil}, %LastOrder.Hash.Crc32{}, 1}
 
   """
-  def remove({tree, hash_fn, v_nodes}, value) do
-    hash = hash_fn.(value)
+  def remove({tree, hash_type, v_nodes}, value) do
+    hash = Hash.hash(hash_type, value)
     tree = Enum.reduce(1..v_nodes, tree, fn(v_node, tree) ->
-      hash = hash_fn.({hash, v_node})
+      hash = Hash.extend(hash_type, hash, v_node)
       :gb_trees.delete(hash, tree)
     end)
-    {tree, hash_fn, v_nodes}
+    {tree, hash_type, v_nodes}
   end
 
   @doc """
@@ -65,7 +67,7 @@ defmodule LastOrder.Ring do
   ## Example
 
       iex> LastOrder.TestHelpers.DummyWorker.start_link(name: :dummy)
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
+      iex> ring = LastOrder.Ring.new(%LastOrder.Hash.Crc32{})
       iex> ring = LastOrder.Ring.add(ring, :dummy)
       iex> LastOrder.Ring.route(ring, "hello", :get)
       :dummy
@@ -84,7 +86,7 @@ defmodule LastOrder.Ring do
 
   ## Example
 
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1) |>
+      iex> ring = LastOrder.Ring.new(%LastOrder.Hash.Crc32{}) |>
       ...> LastOrder.Ring.add("foo@localhost") |>
       ...> LastOrder.Ring.add("bar@localhost")
       iex> LastOrder.Ring.find_best_match(ring, "http://www.twitter.com")
@@ -93,8 +95,8 @@ defmodule LastOrder.Ring do
       "bar@localhost"
 
   """
-  def find_best_match({tree, hash_fn, _}, value) do
-    hash = hash_fn.(value)
+  def find_best_match({tree, hash_type, _}, value) do
+    hash = Hash.hash(hash_type, value)
     iter =
       case :gb_trees.iterator_from(hash, tree) do
         [] -> :gb_trees.iterator(tree)
@@ -110,7 +112,7 @@ defmodule LastOrder.Ring do
 
   ## Example
 
-      iex> ring = LastOrder.Ring.new(&LastOrder.Hash.Crc32.hash/1)
+      iex> ring = LastOrder.Ring.new(%LastOrder.Hash.Crc32{})
       iex> ring = LastOrder.Ring.add(ring, "foo@localhost")
       iex> ring = LastOrder.Ring.add(ring, "bar@localhost")
       iex> LastOrder.Ring.as_list(ring)

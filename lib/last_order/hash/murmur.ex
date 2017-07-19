@@ -1,22 +1,10 @@
 defmodule LastOrder.Hash.Murmur do
+  alias LastOrder.Hash.Murmur
   use Rustler, otp_app: :last_order, crate: "murmur"
 
-  defmodule NifNotLoaded, do: defexception message: "nif not loaded"
+  defstruct []
 
-  @doc """
-  MurmurHash hashing implementation.
-  """
-  def hash(s) when is_binary(s) do
-    string_hash(s)
-  end
-  def hash({curr_hash, num}) when is_integer(curr_hash) and is_integer(num) do
-    h = start_hash(curr_hash)
-    h = extend_hash(h, num, start_magic_a(), start_magic_b())
-    finalize_hash(h)
-  end
-  def hash(blob) do
-    hash(inspect(blob))
-  end
+  defmodule NifNotLoaded, do: defexception message: "nif not loaded"
 
   def start_hash(_seed), do: err()
   def extend_hash(_hash, _value, _magic_a, _magic_b), do: err()
@@ -27,7 +15,20 @@ defmodule LastOrder.Hash.Murmur do
   def next_magic_b(_magic_b), do: err()
   def string_hash(_s), do: err()
 
-  defp err() do
-     throw NifNotLoaded
+  defp err(), do: throw NifNotLoaded
+
+  defimpl LastOrder.Hash do
+    def hash(_, s) when is_binary(s) do
+      Murmur.string_hash(s)
+    end
+    def hash(type, blob) do
+      hash(type, inspect(blob))
+    end
+
+    def extend(_, hash, num) when is_integer(hash) and is_integer(num) do
+      h = Murmur.start_hash(hash)
+      h = Murmur.extend_hash(h, num, Murmur.start_magic_a(), Murmur.start_magic_b())
+      Murmur.finalize_hash(h)
+    end
   end
 end

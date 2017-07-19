@@ -2,7 +2,7 @@ defmodule LastOrder.Router do
   use GenServer
 
   alias LastOrder.Ring
-  alias LastOrder.Hash
+  alias LastOrder.Hash.Murmur
 
   def start_link(nodes, v_nodes, opts \\ []) do
     GenServer.start_link(__MODULE__, {nodes, v_nodes}, opts)
@@ -27,7 +27,7 @@ defmodule LastOrder.Router do
   # GenServer API
 
   def init({nodes, v_nodes}) do
-    ring = Ring.new(&Hash.Murmur.hash/1, v_nodes)
+    ring = Ring.new(%Murmur{}, v_nodes)
     {ring, refs} = Enum.reduce(nodes, {ring, []}, fn(node, state) ->
       add_node(state, node)
     end)
